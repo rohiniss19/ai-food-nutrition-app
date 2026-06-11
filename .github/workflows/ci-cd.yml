@@ -1,4 +1,4 @@
-name: Full Stack CI/CD (Frontend + Backend Docker)
+name: Full Stack CI/CD (Frontend + Backend + Smart Full Build)
 
 on:
   push:
@@ -7,19 +7,21 @@ on:
 jobs:
 
   # -----------------------------------
-  # Detect changes in frontend/backend
+  # Detect changes (frontend/backend/workflow)
   # -----------------------------------
   changes:
     runs-on: ubuntu-latest
+
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
+      full: ${{ steps.filter.outputs.full }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Detect changed folders
+      - name: Detect changes
         uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -28,13 +30,15 @@ jobs:
               - 'frontend/**'
             backend:
               - 'backend/**'
+            full:
+              - '.github/workflows/**'
 
   # -----------------------------------
   # FRONTEND BUILD + PUSH
   # -----------------------------------
   frontend:
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -60,7 +64,7 @@ jobs:
   # -----------------------------------
   backend:
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
 
     steps:
