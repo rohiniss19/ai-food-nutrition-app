@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Food Nutrition Scanner</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      max-width: 800px;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+
+    #preview {
+      margin-top: 20px;
+      max-width: 300px;
+      display: none;
+      border: 1px solid #ccc;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f4f4f4;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      min-height: 100px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>🍛 AI Food Nutrition Scanner</h2>
+
+  <input type="file" id="fileInput" accept="image/*" />
+
+  <br />
+
+  <button onclick="analyze()">Analyze</button>
+
+  <br />
+
+  <img id="preview" />
+
+  <div id="result"></div>
+
+  <script>
+  async function analyze() {
+    const fileInput = document.getElementById("fileInput");
+    const resultBox = document.getElementById("result");
+    const preview = document.getElementById("preview");
+
+    const file = fileInput.files[0];
+
+    if (!file) {
+      alert("Please select an image first");
+      return;
+    }
+
+    resultBox.innerText = "Analyzing image... ⏳";
+
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      try {
+        const base64Image = reader.result;
+
+        preview.src = base64Image;
+        preview.style.display = "block";
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+        const response = await fetch("/api/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            image: base64Image
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeout);
+
+      const data = await response.json();
+
+console.log("FULL API RESPONSE:", data);
+
+ if (!response.ok) {
+      resultBox.innerText =
+        "Backend Error:\n\n" +
+        JSON.stringify(data, null, 2);
+      return;
+    }
+
+resultBox.innerText = data.result;
+
+
+
+       
+
+      } catch (err) {
+        if (err.name === "AbortError") {
+          resultBox.innerText = "Request timed out (ALB/backend slow)";
+        } else {
+          resultBox.innerText = "Frontend Error:\n\n" + err.message;
+        }
+      }
+    };
+
+    reader.readAsDataURL(file);
+  }
+</script>
+
+</body>
+</html>
